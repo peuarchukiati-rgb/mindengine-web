@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import RadarChart from "@/components/RadarChart";
 import {
   getQuestionSet,
+  localizeQuestion,
   maybeGetAdaptiveQuestion,
   targetQuestionCount,
 } from "@/lib/diagnostic/questions";
@@ -16,6 +17,187 @@ const STAGES = {
   PROCESSING: "processing",
   RESULTS: "results",
   HALTED: "halted",
+};
+
+const LANGUAGE_OPTIONS = ["EN", "TH", "JP", "KR"];
+
+const COPY = {
+  EN: {
+    appLabel: "MindEngine v1",
+    title: "Adaptive Cognitive Diagnostic",
+    subtitle:
+      "This system analyzes current cognitive function usage patterns and shadow spike activation. It does not assign personality type.",
+    startDiagnostic: "Start Diagnostic ;)",
+    readinessGate: "Readiness Gate",
+    readinessQuestion: "How ready are you to explore your internal patterns right now?",
+    high: "High",
+    medium: "Medium",
+    low: "Low",
+    diagnosticPaused: "Diagnostic Paused",
+    pausedMessage:
+      "Low readiness detected. Pause here, observe current stress signals, and resume when your attention is more stable.",
+    returnToLanding: "Return to Landing",
+    modeSelection: "Mode Selection",
+    quickScan: "Quick Scan",
+    quickScanDesc: "10 minutes · 10 questions",
+    deepScan: "Deep Scan",
+    deepScanDesc: "25 minutes · 25–35 adaptive questions",
+    mediumHint: "Medium readiness routes to light mode automatically (10 questions).",
+    questionLabel: "Question",
+    minimumWords: "Minimum 120 words. Current:",
+    contextPlaceholder: "Write detailed context...",
+    continue: "Continue",
+    selectOptionError: "Choose one option to continue.",
+    minWordsError: "Please provide at least 120 words before continuing.",
+    processingTitle: "Processing Diagnostic",
+    processingDesc: "Running structured cognitive signal analysis. This may take a few seconds.",
+    analysisFailed: "Analysis failed:",
+    retryAnalysis: "Retry Analysis",
+    startOver: "Start Over",
+    dashboard: "Diagnostic Dashboard",
+    dashboardDesc: "State-based cognitive output. No personality typing applied.",
+    functionRadar: "Function Radar",
+    activeStack: "Active Stack",
+    shadowSpike: "Shadow Spike",
+    functionLabel: "Function",
+    activationScore: "Activation Score",
+    reason: "Reason",
+    riskPattern: "Risk Pattern",
+    correctiveAction: "Corrective Action",
+    runNewDiagnostic: "Run New Diagnostic",
+  },
+  TH: {
+    appLabel: "MindEngine v1",
+    title: "การวินิจฉัยการใช้กระบวนการคิดแบบปรับตามบริบท",
+    subtitle:
+      "ระบบนี้วิเคราะห์รูปแบบการใช้ cognitive function และการกระตุ้น shadow spike โดยไม่ระบุบุคลิกภาพแบบตายตัว",
+    startDiagnostic: "เริ่มการวินิจฉัย ;)",
+    readinessGate: "ด่านความพร้อม",
+    readinessQuestion: "ตอนนี้คุณพร้อมแค่ไหนที่จะสำรวจรูปแบบภายในของตัวเอง?",
+    high: "สูง",
+    medium: "กลาง",
+    low: "ต่ำ",
+    diagnosticPaused: "หยุดการวินิจฉัยชั่วคราว",
+    pausedMessage:
+      "ตรวจพบความพร้อมระดับต่ำ แนะนำให้พักและสังเกตสัญญาณความเครียดก่อน แล้วค่อยกลับมาทำต่อเมื่อสมาธินิ่งขึ้น",
+    returnToLanding: "กลับหน้าแรก",
+    modeSelection: "เลือกโหมด",
+    quickScan: "สแกนเร็ว",
+    quickScanDesc: "10 นาที · 10 คำถาม",
+    deepScan: "สแกนลึก",
+    deepScanDesc: "25 นาที · 25–35 คำถามแบบปรับตัว",
+    mediumHint: "ถ้าความพร้อมระดับกลาง ระบบจะใช้โหมดเบาอัตโนมัติ (10 คำถาม)",
+    questionLabel: "คำถาม",
+    minimumWords: "อย่างน้อย 120 คำ ตอนนี้:",
+    contextPlaceholder: "พิมพ์บริบทแบบละเอียด...",
+    continue: "ถัดไป",
+    selectOptionError: "กรุณาเลือกหนึ่งตัวเลือกก่อน",
+    minWordsError: "กรุณาเขียนอย่างน้อย 120 คำก่อนดำเนินการต่อ",
+    processingTitle: "กำลังประมวลผล",
+    processingDesc: "กำลังวิเคราะห์สัญญาณกระบวนการคิดแบบโครงสร้าง อาจใช้เวลาสักครู่",
+    analysisFailed: "วิเคราะห์ไม่สำเร็จ:",
+    retryAnalysis: "ลองวิเคราะห์ใหม่",
+    startOver: "เริ่มใหม่",
+    dashboard: "แดชบอร์ดผลวินิจฉัย",
+    dashboardDesc: "ผลลัพธ์เชิงสถานะ โดยไม่จัดประเภทบุคลิกภาพ",
+    functionRadar: "เรดาร์ฟังก์ชัน",
+    activeStack: "สแต็กที่ใช้งานเด่น",
+    shadowSpike: "Shadow Spike",
+    functionLabel: "ฟังก์ชัน",
+    activationScore: "คะแนนการกระตุ้น",
+    reason: "เหตุผล",
+    riskPattern: "รูปแบบความเสี่ยง",
+    correctiveAction: "แนวทางปรับแก้",
+    runNewDiagnostic: "เริ่มวินิจฉัยรอบใหม่",
+  },
+  JP: {
+    appLabel: "MindEngine v1",
+    title: "適応型認知診断",
+    subtitle:
+      "このシステムは認知機能の使用パターンとシャドースパイクの活性を分析します。性格タイプの判定は行いません。",
+    startDiagnostic: "診断を開始 ;)",
+    readinessGate: "準備ゲート",
+    readinessQuestion: "今、内面的なパターンを探る準備はどの程度ありますか？",
+    high: "高い",
+    medium: "中",
+    low: "低い",
+    diagnosticPaused: "診断を一時停止",
+    pausedMessage:
+      "準備度が低い状態です。まずストレス信号を観察し、注意が安定してから再開してください。",
+    returnToLanding: "トップへ戻る",
+    modeSelection: "モード選択",
+    quickScan: "クイックスキャン",
+    quickScanDesc: "10分 · 10問",
+    deepScan: "ディープスキャン",
+    deepScanDesc: "25分 · 25〜35問の適応型質問",
+    mediumHint: "準備度が中の場合は自動でライトモード（10問）になります。",
+    questionLabel: "質問",
+    minimumWords: "最低120語。現在:",
+    contextPlaceholder: "詳細な文脈を入力してください...",
+    continue: "続行",
+    selectOptionError: "続行するには1つ選択してください。",
+    minWordsError: "続行する前に120語以上入力してください。",
+    processingTitle: "診断を処理中",
+    processingDesc: "構造化された認知シグナル分析を実行中です。数秒かかる場合があります。",
+    analysisFailed: "分析に失敗しました:",
+    retryAnalysis: "再試行",
+    startOver: "やり直す",
+    dashboard: "診断ダッシュボード",
+    dashboardDesc: "状態ベースの認知出力。性格タイプの判定はありません。",
+    functionRadar: "機能レーダー",
+    activeStack: "アクティブスタック",
+    shadowSpike: "シャドースパイク",
+    functionLabel: "機能",
+    activationScore: "活性スコア",
+    reason: "理由",
+    riskPattern: "リスクパターン",
+    correctiveAction: "修正アクション",
+    runNewDiagnostic: "新しい診断を実行",
+  },
+  KR: {
+    appLabel: "MindEngine v1",
+    title: "적응형 인지 진단",
+    subtitle:
+      "이 시스템은 인지 기능 사용 패턴과 섀도우 스파이크 활성화를 분석합니다. 성격 유형을 단정하지 않습니다.",
+    startDiagnostic: "진단 시작 ;)",
+    readinessGate: "준비도 게이트",
+    readinessQuestion: "지금 내면 패턴을 탐색할 준비가 어느 정도인가요?",
+    high: "높음",
+    medium: "중간",
+    low: "낮음",
+    diagnosticPaused: "진단 일시 중지",
+    pausedMessage:
+      "준비도가 낮게 감지되었습니다. 먼저 스트레스 신호를 관찰하고 주의가 안정된 뒤 다시 진행하세요.",
+    returnToLanding: "처음으로",
+    modeSelection: "모드 선택",
+    quickScan: "퀵 스캔",
+    quickScanDesc: "10분 · 10문항",
+    deepScan: "딥 스캔",
+    deepScanDesc: "25분 · 25~35개 적응형 문항",
+    mediumHint: "준비도가 중간이면 자동으로 라이트 모드(10문항)로 진행됩니다.",
+    questionLabel: "문항",
+    minimumWords: "최소 120단어. 현재:",
+    contextPlaceholder: "상세한 맥락을 작성하세요...",
+    continue: "계속",
+    selectOptionError: "계속하려면 하나를 선택하세요.",
+    minWordsError: "계속하기 전에 최소 120단어를 입력하세요.",
+    processingTitle: "진단 처리 중",
+    processingDesc: "구조화된 인지 신호 분석을 실행 중입니다. 몇 초 걸릴 수 있습니다.",
+    analysisFailed: "분석 실패:",
+    retryAnalysis: "다시 시도",
+    startOver: "처음부터",
+    dashboard: "진단 대시보드",
+    dashboardDesc: "상태 기반 인지 결과입니다. 성격 유형 분류는 없습니다.",
+    functionRadar: "기능 레이더",
+    activeStack: "활성 스택",
+    shadowSpike: "섀도우 스파이크",
+    functionLabel: "기능",
+    activationScore: "활성 점수",
+    reason: "이유",
+    riskPattern: "리스크 패턴",
+    correctiveAction: "교정 액션",
+    runNewDiagnostic: "새 진단 실행",
+  },
 };
 
 function countWords(text) {
@@ -51,6 +233,7 @@ function capWords(text, max) {
 
 export default function MindEngineApp() {
   const [stage, setStage] = useState(STAGES.LANDING);
+  const [language, setLanguage] = useState("EN");
   const [readiness, setReadiness] = useState("");
   const [mode, setMode] = useState("");
   const [questions, setQuestions] = useState([]);
@@ -65,11 +248,17 @@ export default function MindEngineApp() {
   const adaptiveKeysRef = useRef(new Set());
 
   const currentQuestion = questions[questionIndex] || null;
+  const visibleQuestion = useMemo(
+    () => localizeQuestion(currentQuestion, language),
+    [currentQuestion, language],
+  );
   const progress = questions.length
     ? Math.round(((questionIndex + 1) / questions.length) * 100)
     : 0;
 
   const targetCount = useMemo(() => targetQuestionCount(readiness, mode), [readiness, mode]);
+  const dictionary = COPY[language] || COPY.EN;
+  const t = (key) => dictionary[key] || COPY.EN[key] || key;
 
   function resetFlow() {
     setStage(STAGES.LANDING);
@@ -150,7 +339,7 @@ export default function MindEngineApp() {
     if (currentQuestion.type === "context") {
       const words = countWords(contextInput);
       if (words < 120) {
-        setFieldError("Please provide at least 120 words before continuing.");
+        setFieldError(t("minWordsError"));
         return;
       }
       formattedResponse = {
@@ -169,7 +358,7 @@ export default function MindEngineApp() {
 
     if (currentQuestion.type === "multiple_choice") {
       if (!choiceInput) {
-        setFieldError("Choose one option to continue.");
+        setFieldError(t("selectOptionError"));
         return;
       }
       formattedResponse = {
@@ -222,38 +411,49 @@ export default function MindEngineApp() {
     "mx-auto w-full max-w-3xl rounded-2xl border border-slate-700 bg-slate-900/70 p-6 shadow-xl";
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#0f1e37,#020617_45%)] px-4 py-10 text-slate-100">
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top,#0f1e37,#020617_45%)] px-4 py-10 text-slate-100">
+      <div className="mx-auto mb-4 flex w-full max-w-5xl justify-end gap-2">
+        {LANGUAGE_OPTIONS.map((code) => (
+          <button
+            key={code}
+            type="button"
+            onClick={() => setLanguage(code)}
+            className={`rounded-md border px-3 py-1 text-xs font-medium ${
+              language === code
+                ? "border-sky-400 bg-sky-500/20 text-sky-100"
+                : "border-slate-600 bg-slate-900/70 text-slate-300"
+            }`}
+          >
+            {code}
+          </button>
+        ))}
+      </div>
       {stage === STAGES.LANDING && (
         <section className={cardClass}>
           <p className="mb-2 text-xs uppercase tracking-[0.25em] text-sky-300">
-            MindEngine v1
+            {t("appLabel")}
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight">Adaptive Cognitive Diagnostic</h1>
-          <p className="mt-4 text-slate-300">
-            This system analyzes current cognitive function usage patterns and shadow spike
-            activation. It does not assign personality type.
-          </p>
+          <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
+          <p className="mt-4 text-slate-300">{t("subtitle")}</p>
           <button
             type="button"
             onClick={() => setStage(STAGES.READINESS)}
             className="mt-8 rounded-lg bg-sky-500 px-5 py-3 font-medium text-slate-950 transition hover:bg-sky-400"
           >
-            Start Diagnostic
+            {t("startDiagnostic")}
           </button>
         </section>
       )}
 
       {stage === STAGES.READINESS && (
         <section className={cardClass}>
-          <h2 className="text-2xl font-semibold">Readiness Gate</h2>
-          <p className="mt-3 text-slate-300">
-            How ready are you to explore your internal patterns right now?
-          </p>
+          <h2 className="text-2xl font-semibold">{t("readinessGate")}</h2>
+          <p className="mt-3 text-slate-300">{t("readinessQuestion")}</p>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {[
-              { value: "high", label: "High" },
-              { value: "medium", label: "Medium" },
-              { value: "low", label: "Low" },
+              { value: "high", label: t("high") },
+              { value: "medium", label: t("medium") },
+              { value: "low", label: t("low") },
             ].map((option) => (
               <button
                 key={option.value}
@@ -270,32 +470,29 @@ export default function MindEngineApp() {
 
       {stage === STAGES.HALTED && (
         <section className={cardClass}>
-          <h2 className="text-2xl font-semibold">Diagnostic Paused</h2>
-          <p className="mt-3 text-slate-300">
-            Low readiness detected. Pause here, observe current stress signals, and resume when
-            your attention is more stable.
-          </p>
+          <h2 className="text-2xl font-semibold">{t("diagnosticPaused")}</h2>
+          <p className="mt-3 text-slate-300">{t("pausedMessage")}</p>
           <button
             type="button"
             onClick={resetFlow}
             className="mt-6 rounded-lg border border-slate-500 px-4 py-2 text-sm transition hover:border-slate-300"
           >
-            Return to Landing
+            {t("returnToLanding")}
           </button>
         </section>
       )}
 
       {stage === STAGES.MODE && (
         <section className={cardClass}>
-          <h2 className="text-2xl font-semibold">Mode Selection</h2>
+          <h2 className="text-2xl font-semibold">{t("modeSelection")}</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <button
               type="button"
               onClick={() => startQuestionnaire("quick")}
               className="rounded-xl border border-slate-600 bg-slate-800/60 p-5 text-left transition hover:border-sky-400"
             >
-              <h3 className="text-lg font-semibold">Quick Scan</h3>
-              <p className="mt-2 text-sm text-slate-300">10 minutes · 10 questions</p>
+              <h3 className="text-lg font-semibold">{t("quickScan")}</h3>
+              <p className="mt-2 text-sm text-slate-300">{t("quickScanDesc")}</p>
             </button>
             <button
               type="button"
@@ -303,23 +500,21 @@ export default function MindEngineApp() {
               disabled={readiness === "medium"}
               className="rounded-xl border border-slate-600 bg-slate-800/60 p-5 text-left transition hover:border-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <h3 className="text-lg font-semibold">Deep Scan</h3>
-              <p className="mt-2 text-sm text-slate-300">25 minutes · 25–35 adaptive questions</p>
+              <h3 className="text-lg font-semibold">{t("deepScan")}</h3>
+              <p className="mt-2 text-sm text-slate-300">{t("deepScanDesc")}</p>
             </button>
           </div>
           {readiness === "medium" && (
-            <p className="mt-4 text-sm text-amber-300">
-              Medium readiness routes to light mode automatically (10 questions).
-            </p>
+            <p className="mt-4 text-sm text-amber-300">{t("mediumHint")}</p>
           )}
         </section>
       )}
 
-      {stage === STAGES.QUESTIONNAIRE && currentQuestion && (
+      {stage === STAGES.QUESTIONNAIRE && visibleQuestion && (
         <section className={cardClass}>
           <div className="mb-4 flex items-center justify-between text-sm text-slate-300">
             <span>
-              Question {questionIndex + 1} / {questions.length}
+              {t("questionLabel")} {questionIndex + 1} / {questions.length}
             </span>
             <span>{progress}%</span>
           </div>
@@ -330,28 +525,28 @@ export default function MindEngineApp() {
             />
           </div>
 
-          <h2 className="mt-6 text-xl font-semibold">{currentQuestion.prompt}</h2>
+          <h2 className="mt-6 text-xl font-semibold">{visibleQuestion.prompt}</h2>
 
-          {currentQuestion.type === "context" && (
+          {visibleQuestion.type === "context" && (
             <div className="mt-5">
               <textarea
                 value={contextInput}
                 onChange={(event) => setContextInput(event.target.value)}
                 rows={9}
                 className="w-full rounded-xl border border-slate-600 bg-slate-950/80 p-4 text-sm text-slate-100 outline-none ring-sky-400 focus:ring"
-                placeholder="Write detailed context..."
+                placeholder={t("contextPlaceholder")}
               />
               <p className="mt-2 text-xs text-slate-400">
-                Minimum 120 words. Current: {countWords(contextInput)}
+                {t("minimumWords")} {countWords(contextInput)}
               </p>
             </div>
           )}
 
-          {currentQuestion.type === "bipolar" && (
+          {visibleQuestion.type === "bipolar" && (
             <div className="mt-6">
               <div className="mb-3 flex justify-between text-sm text-slate-300">
-                <span>{currentQuestion.labels?.[0]}</span>
-                <span>{currentQuestion.labels?.[1]}</span>
+                <span>{visibleQuestion.labels?.[0]}</span>
+                <span>{visibleQuestion.labels?.[1]}</span>
               </div>
               <div className="grid grid-cols-7 gap-2">
                 {[1, 2, 3, 4, 5, 6, 7].map((value) => (
@@ -372,9 +567,9 @@ export default function MindEngineApp() {
             </div>
           )}
 
-          {currentQuestion.type === "multiple_choice" && (
+          {visibleQuestion.type === "multiple_choice" && (
             <div className="mt-5 space-y-3">
-              {currentQuestion.options?.map((option) => (
+              {visibleQuestion.options?.map((option) => (
                 <label
                   key={option.value}
                   className={`flex cursor-pointer items-center rounded-lg border px-3 py-3 text-sm ${
@@ -385,7 +580,7 @@ export default function MindEngineApp() {
                 >
                   <input
                     type="radio"
-                    name={currentQuestion.id}
+                    name={visibleQuestion.id}
                     value={option.value}
                     checked={choiceInput === option.value}
                     onChange={() => setChoiceInput(option.value)}
@@ -404,22 +599,22 @@ export default function MindEngineApp() {
             onClick={submitAnswer}
             className="mt-7 rounded-lg bg-sky-500 px-5 py-3 font-medium text-slate-950 transition hover:bg-sky-400"
           >
-            Continue
+            {t("continue")}
           </button>
         </section>
       )}
 
       {stage === STAGES.PROCESSING && (
         <section className={cardClass}>
-          <h2 className="text-2xl font-semibold">Processing Diagnostic</h2>
+          <h2 className="text-2xl font-semibold">{t("processingTitle")}</h2>
           {!processingError && (
-            <p className="mt-4 text-slate-300">
-              Running structured cognitive signal analysis. This may take a few seconds.
-            </p>
+            <p className="mt-4 text-slate-300">{t("processingDesc")}</p>
           )}
           {processingError && (
             <div className="mt-4">
-              <p className="text-rose-300">Analysis failed: {processingError}</p>
+              <p className="text-rose-300">
+                {t("analysisFailed")} {processingError}
+              </p>
               <div className="mt-5 flex gap-3">
                 <button
                   type="button"
@@ -432,14 +627,14 @@ export default function MindEngineApp() {
                   }
                   className="rounded-lg bg-sky-500 px-4 py-2 font-medium text-slate-950 transition hover:bg-sky-400"
                 >
-                  Retry Analysis
+                  {t("retryAnalysis")}
                 </button>
                 <button
                   type="button"
                   onClick={resetFlow}
                   className="rounded-lg border border-slate-500 px-4 py-2 text-sm transition hover:border-slate-300"
                 >
-                  Start Over
+                  {t("startOver")}
                 </button>
               </div>
             </div>
@@ -450,22 +645,20 @@ export default function MindEngineApp() {
       {stage === STAGES.RESULTS && result && (
         <section className="mx-auto w-full max-w-5xl space-y-4">
           <header className={cardClass}>
-            <h2 className="text-3xl font-semibold">Diagnostic Dashboard</h2>
-            <p className="mt-2 text-sm text-slate-300">
-              State-based cognitive output. No personality typing applied.
-            </p>
+            <h2 className="text-3xl font-semibold">{t("dashboard")}</h2>
+            <p className="mt-2 text-sm text-slate-300">{t("dashboardDesc")}</p>
           </header>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <article className={cardClass}>
-              <h3 className="text-xl font-semibold">Function Radar</h3>
+              <h3 className="text-xl font-semibold">{t("functionRadar")}</h3>
               <div className="mt-4">
                 <RadarChart scores={result.function_scores} />
               </div>
             </article>
 
             <article className={cardClass}>
-              <h3 className="text-xl font-semibold">Active Stack</h3>
+              <h3 className="text-xl font-semibold">{t("activeStack")}</h3>
               <ol className="mt-4 space-y-2">
                 {result.active_stack.slice(0, 4).map((fn, index) => (
                   <li
@@ -485,18 +678,18 @@ export default function MindEngineApp() {
           </div>
 
           <article className={cardClass}>
-            <h3 className="text-xl font-semibold">Shadow Spike</h3>
+            <h3 className="text-xl font-semibold">{t("shadowSpike")}</h3>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
-                <p className="text-xs uppercase text-slate-400">Function</p>
+                <p className="text-xs uppercase text-slate-400">{t("functionLabel")}</p>
                 <p className="mt-1 text-lg">{result.shadow_spike.function}</p>
               </div>
               <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
-                <p className="text-xs uppercase text-slate-400">Activation Score</p>
+                <p className="text-xs uppercase text-slate-400">{t("activationScore")}</p>
                 <p className="mt-1 text-lg">{result.shadow_spike.score}</p>
               </div>
               <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-3 sm:col-span-1">
-                <p className="text-xs uppercase text-slate-400">Reason</p>
+                <p className="text-xs uppercase text-slate-400">{t("reason")}</p>
                 <p className="mt-1 text-sm text-slate-200">{result.shadow_spike.reason}</p>
               </div>
             </div>
@@ -504,12 +697,12 @@ export default function MindEngineApp() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <article className={cardClass}>
-              <h3 className="text-xl font-semibold">Risk Pattern</h3>
+              <h3 className="text-xl font-semibold">{t("riskPattern")}</h3>
               <p className="mt-3 text-sm text-slate-200">{capWords(result.risk_pattern, 120)}</p>
             </article>
 
             <article className={cardClass}>
-              <h3 className="text-xl font-semibold">Corrective Action</h3>
+              <h3 className="text-xl font-semibold">{t("correctiveAction")}</h3>
               <p className="mt-3 text-sm text-slate-200">{result.corrective_action}</p>
             </article>
           </div>
@@ -520,7 +713,7 @@ export default function MindEngineApp() {
               onClick={resetFlow}
               className="rounded-lg border border-slate-500 px-4 py-2 text-sm transition hover:border-slate-300"
             >
-              Run New Diagnostic
+              {t("runNewDiagnostic")}
             </button>
           </div>
         </section>
@@ -528,4 +721,3 @@ export default function MindEngineApp() {
     </main>
   );
 }
-
