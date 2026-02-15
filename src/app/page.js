@@ -96,4 +96,47 @@ export default function MindEngineApp() {
       <footer className="mt-16 text-center opacity-30"><div className="h-px w-12 bg-slate-700 mx-auto mb-4"></div><p className="text-slate-500 text-[9px] uppercase tracking-[0.4em] font-mono">Awareness Precedes Control</p></footer>
     </div>
   );
+}"use client";
+import React, { useState } from 'react';
+
+export default function MindEngineApp() {
+  const [step, setStep] = useState('assessment');
+  const [answers, setAnswers] = useState({ strength: 'logic', energy: 50 });
+
+  return (
+    <div style={{ backgroundColor: '#020617', color: '#f8fafc', minHeight: '100vh', padding: '2rem', fontFamily: 'sans-serif' }}>
+      <header style={{ maxWidth: '800px', margin: '0 auto 2rem', borderBottom: '1px solid #1e293b', paddingBottom: '1.5rem' }}>
+        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#818cf8', margin: 0 }}>MindEngine</h1>
+        <p style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.5rem' }}>COGNITIVE OS / MVP v1.1 ONLINE</p>
+      </header>
+
+      <main style={{ maxWidth: '800px', margin: '0 auto' }}>
+        {step === 'assessment' ? (
+          <section style={{ background: '#0f172a', padding: '2rem', borderRadius: '1.5rem', border: '1px solid #1e293b' }}>
+            <h2 style={{ color: '#a5b4fc', fontSize: '1.25rem' }}>Initial Calibration</h2>
+            <div style={{ marginTop: '2rem' }}>
+              <p style={{ color: '#94a3b8', fontSize: '0.875rem' }}>1. ในสภาวะตึงเครียดที่สุด พฤติกรรมตอบสนองของคุณคือ?</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                <button onClick={() => setAnswers({...answers, strength: 'logic'})} style={{ padding: '1rem', borderRadius: '1rem', border: answers.strength === 'logic' ? '2px solid #6366f1' : '1px solid #1e293b', background: '#020617', color: 'white', cursor: 'pointer' }}>วิเคราะห์ความถูกต้อง</button>
+                <button onClick={() => setAnswers({...answers, strength: 'intuition'})} style={{ padding: '1rem', borderRadius: '1rem', border: answers.strength === 'intuition' ? '2px solid #6366f1' : '1px solid #1e293b', background: '#020617', color: 'white', cursor: 'pointer' }}>มองหาความหมาย</button>
+              </div>
+            </div>
+            <button onClick={() => setStep('results')} style={{ width: '100%', marginTop: '2rem', padding: '1rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '1rem', fontWeight: 'bold', cursor: 'pointer' }}>GENERATE SYNTHESIS</button>
+          </section>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
+            <div style={{ background: '#0f172a', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #1e293b' }}>
+              <h3 style={{ fontSize: '0.75rem', color: '#64748b' }}>HEART-STATE</h3>
+              <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#818cf8', margin: 0 }}>{answers.strength === 'logic' ? 'TI-DOM' : 'NI-DOM'}</p>
+            </div>
+            <div style={{ background: '#0f172a', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #1e293b' }}>
+              <h3 style={{ fontSize: '0.75rem', color: '#64748b' }}>SYSTEM FEEDBACK</h3>
+              <p style={{ fontSize: '0.875rem', color: '#94a3b8' }}>Calibration complete. Awareness layer initialized.</p>
+              <button onClick={() => setStep('assessment')} style={{ marginTop: '1rem', background: 'none', border: 'none', color: '#64748b', fontSize: '0.75rem', cursor: 'pointer' }}>RECALIBRATE</button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
 }
