@@ -20,6 +20,25 @@ const STAGES = {
 };
 
 const LANGUAGE_OPTIONS = ["EN", "TH", "JP", "KR"];
+const MBTI_OPTIONS = [
+  "",
+  "INTJ",
+  "INTP",
+  "ENTJ",
+  "ENTP",
+  "INFJ",
+  "INFP",
+  "ENFJ",
+  "ENFP",
+  "ISTJ",
+  "ISFJ",
+  "ESTJ",
+  "ESFJ",
+  "ISTP",
+  "ISFP",
+  "ESTP",
+  "ESFP",
+];
 
 const COPY = {
   EN: {
@@ -43,12 +62,14 @@ const COPY = {
     deepScan: "Deep Scan",
     deepScanDesc: "25 minutes · 25–35 adaptive questions",
     mediumHint: "Medium readiness routes to light mode automatically (10 questions).",
+    mbtiOptional: "MBTI (optional)",
+    mbtiPlaceholder: "Skip / not sure",
+    mbtiHelp: "Used as optional reference only. It does not lock your result.",
     questionLabel: "Question",
-    minimumWords: "Minimum 120 words. Current:",
+    wordCount: "Word count:",
     contextPlaceholder: "Write detailed context...",
     continue: "Continue",
     selectOptionError: "Choose one option to continue.",
-    minWordsError: "Please provide at least 120 words before continuing.",
     processingTitle: "Processing Diagnostic",
     processingDesc: "Running structured cognitive signal analysis. This may take a few seconds.",
     analysisFailed: "Analysis failed:",
@@ -87,12 +108,14 @@ const COPY = {
     deepScan: "สแกนลึก",
     deepScanDesc: "25 นาที · 25–35 คำถามแบบปรับตัว",
     mediumHint: "ถ้าความพร้อมระดับกลาง ระบบจะใช้โหมดเบาอัตโนมัติ (10 คำถาม)",
+    mbtiOptional: "MBTI (ไม่บังคับ)",
+    mbtiPlaceholder: "ข้าม / ยังไม่แน่ใจ",
+    mbtiHelp: "ใช้เป็นข้อมูลอ้างอิงเท่านั้น ไม่ได้ล็อกผลลัพธ์",
     questionLabel: "คำถาม",
-    minimumWords: "อย่างน้อย 120 คำ ตอนนี้:",
+    wordCount: "จำนวนคำ:",
     contextPlaceholder: "พิมพ์บริบทแบบละเอียด...",
     continue: "ถัดไป",
     selectOptionError: "กรุณาเลือกหนึ่งตัวเลือกก่อน",
-    minWordsError: "กรุณาเขียนอย่างน้อย 120 คำก่อนดำเนินการต่อ",
     processingTitle: "กำลังประมวลผล",
     processingDesc: "กำลังวิเคราะห์สัญญาณกระบวนการคิดแบบโครงสร้าง อาจใช้เวลาสักครู่",
     analysisFailed: "วิเคราะห์ไม่สำเร็จ:",
@@ -131,12 +154,14 @@ const COPY = {
     deepScan: "ディープスキャン",
     deepScanDesc: "25分 · 25〜35問の適応型質問",
     mediumHint: "準備度が中の場合は自動でライトモード（10問）になります。",
+    mbtiOptional: "MBTI（任意）",
+    mbtiPlaceholder: "スキップ / 未確定",
+    mbtiHelp: "任意の参照情報としてのみ使用され、結果を固定しません。",
     questionLabel: "質問",
-    minimumWords: "最低120語。現在:",
+    wordCount: "語数:",
     contextPlaceholder: "詳細な文脈を入力してください...",
     continue: "続行",
     selectOptionError: "続行するには1つ選択してください。",
-    minWordsError: "続行する前に120語以上入力してください。",
     processingTitle: "診断を処理中",
     processingDesc: "構造化された認知シグナル分析を実行中です。数秒かかる場合があります。",
     analysisFailed: "分析に失敗しました:",
@@ -175,12 +200,14 @@ const COPY = {
     deepScan: "딥 스캔",
     deepScanDesc: "25분 · 25~35개 적응형 문항",
     mediumHint: "준비도가 중간이면 자동으로 라이트 모드(10문항)로 진행됩니다.",
+    mbtiOptional: "MBTI (선택)",
+    mbtiPlaceholder: "건너뛰기 / 미정",
+    mbtiHelp: "선택 참고값으로만 사용되며 결과를 고정하지 않습니다.",
     questionLabel: "문항",
-    minimumWords: "최소 120단어. 현재:",
+    wordCount: "단어 수:",
     contextPlaceholder: "상세한 맥락을 작성하세요...",
     continue: "계속",
     selectOptionError: "계속하려면 하나를 선택하세요.",
-    minWordsError: "계속하기 전에 최소 120단어를 입력하세요.",
     processingTitle: "진단 처리 중",
     processingDesc: "구조화된 인지 신호 분석을 실행 중입니다. 몇 초 걸릴 수 있습니다.",
     analysisFailed: "분석 실패:",
@@ -236,6 +263,7 @@ export default function MindEngineApp() {
   const [language, setLanguage] = useState("EN");
   const [readiness, setReadiness] = useState("");
   const [mode, setMode] = useState("");
+  const [mbtiDeclared, setMbtiDeclared] = useState("");
   const [questions, setQuestions] = useState([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [responses, setResponses] = useState([]);
@@ -264,6 +292,7 @@ export default function MindEngineApp() {
     setStage(STAGES.LANDING);
     setReadiness("");
     setMode("");
+    setMbtiDeclared("");
     setQuestions([]);
     setQuestionIndex(0);
     setResponses([]);
@@ -337,11 +366,6 @@ export default function MindEngineApp() {
     let formattedResponse;
 
     if (currentQuestion.type === "context") {
-      const words = countWords(contextInput);
-      if (words < 120) {
-        setFieldError(t("minWordsError"));
-        return;
-      }
       formattedResponse = {
         type: "context",
         value: contextInput.trim(),
@@ -398,6 +422,7 @@ export default function MindEngineApp() {
       runAnalysis({
         readiness,
         mode,
+        mbti_declared: mbtiDeclared || null,
         responses: nextResponses,
       });
       return;
@@ -485,6 +510,22 @@ export default function MindEngineApp() {
       {stage === STAGES.MODE && (
         <section className={cardClass}>
           <h2 className="text-2xl font-semibold">{t("modeSelection")}</h2>
+          <div className="mt-4 rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+            <label className="mb-2 block text-sm font-medium text-slate-200">{t("mbtiOptional")}</label>
+            <select
+              value={mbtiDeclared}
+              onChange={(event) => setMbtiDeclared(event.target.value)}
+              className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-sky-400 focus:ring"
+            >
+              <option value="">{t("mbtiPlaceholder")}</option>
+              {MBTI_OPTIONS.filter(Boolean).map((mbti) => (
+                <option key={mbti} value={mbti}>
+                  {mbti}
+                </option>
+              ))}
+            </select>
+            <p className="mt-2 text-xs text-slate-400">{t("mbtiHelp")}</p>
+          </div>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <button
               type="button"
@@ -537,7 +578,7 @@ export default function MindEngineApp() {
                 placeholder={t("contextPlaceholder")}
               />
               <p className="mt-2 text-xs text-slate-400">
-                {t("minimumWords")} {countWords(contextInput)}
+                {t("wordCount")} {countWords(contextInput)}
               </p>
             </div>
           )}
@@ -622,6 +663,7 @@ export default function MindEngineApp() {
                     runAnalysis({
                       readiness,
                       mode,
+                      mbti_declared: mbtiDeclared || null,
                       responses,
                     })
                   }

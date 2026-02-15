@@ -10,6 +10,16 @@ Return strict JSON only.
 Do not include markdown.
 Do not include explanations outside JSON.
 Do not infer personality type labels.
+Use "mbti_declared" only as optional weak prior, never as deterministic type lock.
+Infer the user's communication vibe from context responses and mirror it in:
+- shadow_spike.reason
+- risk_pattern
+- corrective_action
+Style constraints:
+- precise, neutral, practical
+- no motivational fluff
+- no personality-typing explanation
+- keep language aligned to the user's writing tone and directness
 Schema:
 {
   "function_scores": {
@@ -152,6 +162,9 @@ export async function POST(request) {
     if (!payload.readiness || !payload.mode || !Array.isArray(payload.responses)) {
       return NextResponse.json({ error: "Missing required diagnostic fields." }, { status: 400 });
     }
+    if (payload.mbti_declared && typeof payload.mbti_declared !== "string") {
+      return NextResponse.json({ error: "mbti_declared must be a string." }, { status: 400 });
+    }
 
     const result = await callLLMWithRetry(payload, 2);
     const normalized = normalizeResult(result);
@@ -167,4 +180,3 @@ export async function POST(request) {
     );
   }
 }
-

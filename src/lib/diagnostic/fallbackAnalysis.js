@@ -25,6 +25,74 @@ function topFunctions(functionScores, count) {
     .map(([name]) => name);
 }
 
+function detectVibe(responses) {
+  const contextText = responses
+    .filter((response) => response.type === "context")
+    .map((response) => String(response.value || ""))
+    .join(" ");
+
+  const lower = contextText.toLowerCase();
+  if (!contextText.trim()) return "neutral";
+  if (
+    /pressure|urgent|stuck|overload|stress|panic|drain|burnout|anxious|friction/.test(lower)
+  ) {
+    return "intense";
+  }
+  if (
+    /analyze|framework|pattern|logic|structure|signal|model|calibrate|system/.test(lower)
+  ) {
+    return "analytical";
+  }
+  if (/feel|value|emotion|relationship|harmony|meaning|trust|connection/.test(lower)) {
+    return "reflective";
+  }
+  return "neutral";
+}
+
+function vibeCopy(vibe) {
+  if (vibe === "intense") {
+    return {
+      shadowReason:
+        "Stress-loaded wording indicates reactive compensation outside the primary stack.",
+      riskPattern:
+        "Current pattern shows high cognitive load with rapid switching between control and recovery loops. This increases drift, over-correction, and social interpretation noise.",
+      correctiveAction:
+        "For the next 3 high-pressure decisions, pause 90 seconds and log: one observable fact, one assumption, and one next action before responding.",
+    };
+  }
+
+  if (vibe === "analytical") {
+    return {
+      shadowReason:
+        "Language pattern emphasizes model accuracy, with periodic spillover into non-primary compensation functions.",
+      riskPattern:
+        "Pattern indicates strong analysis throughput but occasional execution latency when signal certainty is incomplete. This can create delayed closure and fragmented action.",
+      correctiveAction:
+        "Use a two-step commit rule: define decision threshold in one sentence, then execute one measurable action within 15 minutes.",
+    };
+  }
+
+  if (vibe === "reflective") {
+    return {
+      shadowReason:
+        "Emotion-anchored framing suggests elevated compensatory activation around value and relational signals.",
+      riskPattern:
+        "Pattern shows high internal meaning-tracking with periodic underweighting of external constraints. This may reduce timing precision and increase emotional carryover.",
+      correctiveAction:
+        "Before each key decision, write one value-aligned intention and one external constraint, then choose one action satisfying both.",
+    };
+  }
+
+  return {
+    shadowReason:
+      "Detected elevated activation outside the primary stack during stress-related response signals.",
+    riskPattern:
+      "Pattern shows uneven function deployment under pressure. Decision cycles may narrow too quickly or over-expand, increasing execution drift and interpretive bias.",
+    correctiveAction:
+      "Run a 10-minute dual-log after each high-pressure decision: one column for observed facts, one for inferred meaning, then commit one corrective action.",
+  };
+}
+
 export function buildFallbackAnalysis(payload) {
   const scores = Object.fromEntries(FUNCTIONS.map((name) => [name, 50]));
   const responses = Array.isArray(payload?.responses) ? payload.responses : [];
@@ -87,6 +155,8 @@ export function buildFallbackAnalysis(payload) {
   );
   nonPrimary.sort((a, b) => b[1] - a[1]);
   const shadowCandidate = nonPrimary[0] || [activeStack[3], scores[activeStack[3]]];
+  const vibe = detectVibe(responses);
+  const copy = vibeCopy(vibe);
 
   return {
     function_scores: scores,
@@ -94,12 +164,9 @@ export function buildFallbackAnalysis(payload) {
     shadow_spike: {
       function: shadowCandidate[0],
       score: shadowCandidate[1],
-      reason:
-        "Detected elevated activation outside the primary stack during stress-related response signals.",
+      reason: copy.shadowReason,
     },
-    risk_pattern:
-      "Pattern shows uneven function deployment under pressure. Decision cycles may narrow too quickly or over-expand, increasing execution drift and interpretive bias.",
-    corrective_action:
-      "Run a 10-minute dual-log after each high-pressure decision: one column for observed facts, one for inferred meaning, then commit one corrective action.",
+    risk_pattern: copy.riskPattern,
+    corrective_action: copy.correctiveAction,
   };
 }
