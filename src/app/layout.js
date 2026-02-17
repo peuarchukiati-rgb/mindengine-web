@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "MindEngine v1",
+  title: "MindEngine v1.2",
   description: "Adaptive cognitive diagnostic web application",
 };
 

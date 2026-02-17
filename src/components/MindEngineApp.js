@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import RadarChart from "@/components/RadarChart";
 import {
   getQuestionSet,
@@ -42,7 +42,7 @@ const MBTI_OPTIONS = [
 
 const COPY = {
   EN: {
-    appLabel: "MindEngine v1",
+    appLabel: "MindEngine v1.2",
     title: "Adaptive Cognitive Diagnostic",
     subtitle:
       "This system analyzes current cognitive function usage patterns and shadow spike activation. It does not assign personality type.",
@@ -88,7 +88,7 @@ const COPY = {
     runNewDiagnostic: "Run New Diagnostic",
   },
   TH: {
-    appLabel: "MindEngine v1",
+    appLabel: "MindEngine v1.2",
     title: "การวินิจฉัยการใช้กระบวนการคิดแบบปรับตามบริบท",
     subtitle:
       "ระบบนี้วิเคราะห์รูปแบบการใช้ cognitive function และการกระตุ้น shadow spike โดยไม่ระบุบุคลิกภาพแบบตายตัว",
@@ -134,7 +134,7 @@ const COPY = {
     runNewDiagnostic: "เริ่มวินิจฉัยรอบใหม่",
   },
   JP: {
-    appLabel: "MindEngine v1",
+    appLabel: "MindEngine v1.2",
     title: "適応型認知診断",
     subtitle:
       "このシステムは認知機能の使用パターンとシャドースパイクの活性を分析します。性格タイプの判定は行いません。",
@@ -180,7 +180,7 @@ const COPY = {
     runNewDiagnostic: "新しい診断を実行",
   },
   KR: {
-    appLabel: "MindEngine v1",
+    appLabel: "MindEngine v1.2",
     title: "적응형 인지 진단",
     subtitle:
       "이 시스템은 인지 기능 사용 패턴과 섀도우 스파이크 활성화를 분석합니다. 성격 유형을 단정하지 않습니다.",
@@ -272,7 +272,10 @@ export default function MindEngineApp() {
   const [choiceInput, setChoiceInput] = useState("");
   const [fieldError, setFieldError] = useState("");
   const [processingError, setProcessingError] = useState("");
-  const [result, setResult] = useState(null);
+  const [analysisBase, setAnalysisBase] = useState(null);
+  const [localizedResultMap, setLocalizedResultMap] = useState({});
+  const [isTranslatingResult, setIsTranslatingResult] = useState(false);
+  const [resultTranslateError, setResultTranslateError] = useState("");
   const adaptiveKeysRef = useRef(new Set());
 
   const currentQuestion = questions[questionIndex] || null;
@@ -287,6 +290,10 @@ export default function MindEngineApp() {
   const targetCount = useMemo(() => targetQuestionCount(readiness, mode), [readiness, mode]);
   const dictionary = COPY[language] || COPY.EN;
   const t = (key) => dictionary[key] || COPY.EN[key] || key;
+  const result = useMemo(() => {
+    if (localizedResultMap[language]) return localizedResultMap[language];
+    return localizedResultMap.EN || analysisBase;
+  }, [analysisBase, language, localizedResultMap]);
 
   function resetFlow() {
     setStage(STAGES.LANDING);
@@ -301,7 +308,10 @@ export default function MindEngineApp() {
     setChoiceInput("");
     setFieldError("");
     setProcessingError("");
-    setResult(null);
+    setAnalysisBase(null);
+    setLocalizedResultMap({});
+    setIsTranslatingResult(false);
+    setResultTranslateError("");
     adaptiveKeysRef.current = new Set();
   }
 
@@ -353,13 +363,81 @@ export default function MindEngineApp() {
         throw new Error("Invalid analysis format.");
       }
 
-      setResult(json);
+      setAnalysisBase(json);
+      setLocalizedResultMap({ EN: json });
+      setResultTranslateError("");
       setStage(STAGES.RESULTS);
     } catch (error) {
       setProcessingError(error.message || "Analysis failed.");
       setStage(STAGES.PROCESSING);
     }
   }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function localizeResult() {
+      if (stage !== STAGES.RESULTS) return;
+      if (!analysisBase) return;
+      if (language === "EN") return;
+      if (localizedResultMap[language]) return;
+
+      setIsTranslatingResult(true);
+      setResultTranslateError("");
+      try {
+        const response = await fetch("/api/translate-result", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            target_language: language,
+            result_base: {
+              shadow_spike: {
+                reason: analysisBase.shadow_spike?.reason || "",
+              },
+              risk_pattern: analysisBase.risk_pattern || "",
+              corrective_action: analysisBase.corrective_action || "",
+            },
+          }),
+        });
+        const json = await response.json();
+        if (!response.ok) {
+          throw new Error(json?.error || "Result translation failed.");
+        }
+        if (
+          !json ||
+          typeof json.shadow_spike_reason !== "string" ||
+          typeof json.risk_pattern !== "string" ||
+          typeof json.corrective_action !== "string"
+        ) {
+          throw new Error("Invalid translated result format.");
+        }
+
+        if (!cancelled) {
+          const translated = {
+            ...analysisBase,
+            shadow_spike: {
+              ...analysisBase.shadow_spike,
+              reason: json.shadow_spike_reason,
+            },
+            risk_pattern: json.risk_pattern,
+            corrective_action: json.corrective_action,
+          };
+          setLocalizedResultMap((prev) => ({ ...prev, [language]: translated }));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setResultTranslateError(error.message || "Result translation failed.");
+        }
+      } finally {
+        if (!cancelled) setIsTranslatingResult(false);
+      }
+    }
+
+    localizeResult();
+    return () => {
+      cancelled = true;
+    };
+  }, [analysisBase, language, localizedResultMap, stage]);
 
   function submitAnswer() {
     if (!currentQuestion) return;
@@ -689,6 +767,14 @@ export default function MindEngineApp() {
           <header className={cardClass}>
             <h2 className="text-3xl font-semibold">{t("dashboard")}</h2>
             <p className="mt-2 text-sm text-slate-300">{t("dashboardDesc")}</p>
+            {language !== "EN" && isTranslatingResult && (
+              <p className="mt-2 text-xs text-sky-300">Translating result for {language}...</p>
+            )}
+            {resultTranslateError && (
+              <p className="mt-2 text-xs text-amber-300">
+                Translation fallback to base result: {resultTranslateError}
+              </p>
+            )}
           </header>
 
           <div className="grid gap-4 lg:grid-cols-2">

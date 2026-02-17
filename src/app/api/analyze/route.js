@@ -15,6 +15,7 @@ Infer the user's communication vibe from context responses and mirror it in:
 - shadow_spike.reason
 - risk_pattern
 - corrective_action
+Write text fields in English only (translation is handled separately).
 Style constraints:
 - precise, neutral, practical
 - no motivational fluff
