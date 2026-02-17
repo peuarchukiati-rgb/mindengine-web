@@ -40,9 +40,30 @@ const MBTI_OPTIONS = [
   "ESFP",
 ];
 
+const RELEASE_LOG = [
+  {
+    version: "v1.3",
+    notes: {
+      EN: "Added landing release log to track each product update and summarize what changed per version.",
+      TH: "เพิ่ม Release Log บนหน้า Landing เพื่อบันทึกการอัปเดตแต่ละครั้งและสรุปว่าแก้อะไรบ้างในแต่ละเวอร์ชัน",
+      JP: "各バージョンで何を変更したかを短く追えるよう、Landingにリリースログを追加。",
+      KR: "버전별 변경사항을 짧게 추적할 수 있도록 Landing에 릴리스 로그를 추가.",
+    },
+  },
+  {
+    version: "v1.2",
+    notes: {
+      EN: "Enabled output localization (EN/TH/JP/KR) and added optional MBTI input without type-locking results.",
+      TH: "รองรับการแปลผลลัพธ์ (EN/TH/JP/KR) และเพิ่ม MBTI แบบไม่บังคับโดยไม่ล็อกผลตาม type",
+      JP: "出力の多言語化（EN/TH/JP/KR）と、結果を固定しない任意MBTI入力を追加。",
+      KR: "결과 다국어 전환(EN/TH/JP/KR)과 결과를 고정하지 않는 선택형 MBTI 입력을 추가.",
+    },
+  },
+];
+
 const COPY = {
   EN: {
-    appLabel: "MindEngine v1.2",
+    appLabel: "MindEngine v1.3",
     title: "Adaptive Cognitive Diagnostic",
     subtitle:
       "This system analyzes current cognitive function usage patterns and shadow spike activation. It does not assign personality type.",
@@ -86,9 +107,11 @@ const COPY = {
     riskPattern: "Risk Pattern",
     correctiveAction: "Corrective Action",
     runNewDiagnostic: "Run New Diagnostic",
+    releaseLog: "Release Log",
+    releaseLogHint: "Short summary of what changed each iteration.",
   },
   TH: {
-    appLabel: "MindEngine v1.2",
+    appLabel: "MindEngine v1.3",
     title: "การวินิจฉัยการใช้กระบวนการคิดแบบปรับตามบริบท",
     subtitle:
       "ระบบนี้วิเคราะห์รูปแบบการใช้ cognitive function และการกระตุ้น shadow spike โดยไม่ระบุบุคลิกภาพแบบตายตัว",
@@ -132,9 +155,11 @@ const COPY = {
     riskPattern: "รูปแบบความเสี่ยง",
     correctiveAction: "แนวทางปรับแก้",
     runNewDiagnostic: "เริ่มวินิจฉัยรอบใหม่",
+    releaseLog: "บันทึกการอัปเดต",
+    releaseLogHint: "สรุปสั้นๆ ว่าแต่ละรอบแก้อะไรไปบ้าง",
   },
   JP: {
-    appLabel: "MindEngine v1.2",
+    appLabel: "MindEngine v1.3",
     title: "適応型認知診断",
     subtitle:
       "このシステムは認知機能の使用パターンとシャドースパイクの活性を分析します。性格タイプの判定は行いません。",
@@ -178,9 +203,11 @@ const COPY = {
     riskPattern: "リスクパターン",
     correctiveAction: "修正アクション",
     runNewDiagnostic: "新しい診断を実行",
+    releaseLog: "更新ログ",
+    releaseLogHint: "各イテレーションでの変更点を短く表示します。",
   },
   KR: {
-    appLabel: "MindEngine v1.2",
+    appLabel: "MindEngine v1.3",
     title: "적응형 인지 진단",
     subtitle:
       "이 시스템은 인지 기능 사용 패턴과 섀도우 스파이크 활성화를 분석합니다. 성격 유형을 단정하지 않습니다.",
@@ -224,6 +251,8 @@ const COPY = {
     riskPattern: "리스크 패턴",
     correctiveAction: "교정 액션",
     runNewDiagnostic: "새 진단 실행",
+    releaseLog: "업데이트 로그",
+    releaseLogHint: "각 반복에서 바뀐 내용을 짧게 기록합니다.",
   },
 };
 
@@ -545,6 +574,23 @@ export default function MindEngineApp() {
           >
             {t("startDiagnostic")}
           </button>
+          <div className="mt-8 rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-sky-300">
+              {t("releaseLog")}
+            </h3>
+            <p className="mt-1 text-xs text-slate-400">{t("releaseLogHint")}</p>
+            <ul className="mt-3 space-y-2">
+              {RELEASE_LOG.map((entry) => (
+                <li
+                  key={entry.version}
+                  className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm"
+                >
+                  <span className="mr-2 font-semibold text-sky-200">{entry.version}</span>
+                  <span className="text-slate-200">{entry.notes[language] || entry.notes.EN}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       )}
 
